@@ -1,16 +1,25 @@
 name: Generate Unreal Engine Docsets
 
-on: [push, pull_request]
-
+on: 
+  workflow_dispatch:
+    inputs:
+      ue-version:
+        description: "The version of unreal to generate the documentation for"
+        required: false
+        default: "5.3"
+        
+permissions:
+  contents: write    
+  
 jobs:
   build-unreal-engine-docsets:
-    name: Generate Unreal Engine Docsets
+    name: Generate Unreal Engine ${{ inputs.nu-version }} Docsets
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
       - name: Environment Variables
         run: |
-          echo "CI_UNREAL_ENGINE_VERSION=5.3" >> $GITHUB_ENV
+          echo "CI_UNREAL_ENGINE_VERSION=${{ inputs.ue-version }}" >> $GITHUB_ENV
         shell: bash
       - name: Set up Python 3.11
         uses: actions/setup-python@v4
@@ -51,13 +60,17 @@ jobs:
           poetry run python unreal_engine_docset.py --input "~/Games/UE_$CI_UNREAL_ENGINE_VERSION/Engine/Documentation/Builds/BlueprintAPI-HTML.tgz" --output D:/
           cd /D && tar -czf /D/UnrealEngineBlueprintAPI.docset.tar.gz UnrealEngineBlueprintAPI.docset
         shell: bash
-      - uses: actions/upload-artifact@v2
+        
+      - name: ✅ Create release
+        uses: softprops/action-gh-release@v2
         with:
-          name: UnrealEngineC++API.docset
-          path: |
+          tag_name: UE_${{ inputs.ue-version }}_docsets
+          name: "Unreal Engine ${{ inputs.ue-version }} Docsets"
+          body: "Generated docsets for Unreal Engine ${{ inputs.ue-version }}."
+          draft: false
+          prerelease: false
+          files: |
             D:/UnrealEngineC++API.docset.tar.gz
-      - uses: actions/upload-artifact@v2
-        with:
-          name: UnrealEngineBlueprintAPI.docset
-          path: |
             D:/UnrealEngineBlueprintAPI.docset.tar.gz
+
+
